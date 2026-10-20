@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loader Studio</title><link rel="stylesheet" href="/style.css"></head>
+<body><div class="wrap">
+<header><div><b>LOADER STUDIO</b><span>Upload a Lua file and create a loader.</span></div></header>
+<section class="card"><h2>Create Loader</h2>
+<form id="upload">
+<input name="name" placeholder="Script name" required>
+<input name="file" type="file" accept=".lua" required>
+<select name="mode"><option value="public">Public — everyone</option><option value="key-device">Key + first-device lock</option><option value="key">Key required</option></select>
+<button>Create</button></form><pre id="result"></pre></section>
+<section class="card"><div class="row"><h2>Scripts</h2><button onclick="loadScripts()">Refresh</button></div><div id="scripts"></div></section>
+</div>
+<script>
+const $=x=>document.querySelector(x);
+async function loadScripts(){
+ const r=await fetch("/api/scripts");const d=await r.json();
+ $("#scripts").innerHTML=d.map(s=>`<div class="script"><div><b>${esc(s.name)}</b><small>${s.mode} · ${s.id}</small></div>
+ <div>${s.mode!=="public"?`<button onclick="keys('${s.id}')">Create Keys</button>`:""} <button onclick="copyLoader('${location.origin}/l/${s.id}')">Copy loader</button></div></div>`).join("");
+}
+async function keys(id){
+ const n=prompt("How many keys?","1");if(!n)return;
+ const r=await fetch("/api/keys",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({script_id:id,count:n})});
+ const d=await r.json();alert(d.keys?d.keys.join("\\n"):d.error);
+}
+function copyLoader(u){navigator.clipboard.writeText(`loadstring(game:HttpGet("${u}"))()`);alert("Loader copied");}
+$("#upload").onsubmit=async e=>{e.preventDefault();const r=await fetch("/api/scripts",{method:"POST",body:new FormData(e.target)});const d=await r.json();$("#result").textContent=d.error||d.loader;loadScripts();}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+loadScripts();
+</script></body></html>
